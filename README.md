@@ -2,7 +2,7 @@
 Go Library for Laser Light Detection and Range-Finding Using a Single Camera
 
 ## Installing
-`go get NYU-Millimeter-Wave-New/Rangefinder`
+`go get github.com/NYU-Efficient-Room-Traversal/Rangefinder`
 
 ## Building
 To build the library for iOS, download `gomobile`
