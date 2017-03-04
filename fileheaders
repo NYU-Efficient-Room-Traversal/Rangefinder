@@ -1,0 +1,11 @@
+//
+// Laser Range Finder
+// [FILE NAME].go
+//
+// Cole Smith - css@nyu.edu
+// Eric Lin   - eric.lin@nyu.edu
+//
+
+package rangefinder
+
+import "fmt"
