@@ -9,9 +9,13 @@ To build the library for iOS, download `gomobile`
 
 `go get golang.org/x/mobile/cmd/gomobile`
 
+`gomobile init`
+
 And build the `.framework` file in the project directory
 
-`gomobile bind -target=ios`
+`gomobile bind -target=ios` (xcode is needed)
+
+You may now drag-and-drop the framework into your xcode project
 
 ## Functions
 
