@@ -4,6 +4,7 @@
 //
 // Cole Smith - css@nyu.edu
 // Eric Lin   - eric.lin@nyu.edu
+// LICENSE: GPL 3.0
 //
 
 package rangefinder
