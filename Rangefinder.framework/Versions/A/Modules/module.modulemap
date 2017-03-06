@@ -1,0 +1,8 @@
+framework module "Rangefinder" {
+	header "ref.h"
+    header "Rangefinder.objc.h"
+    header "Universe.objc.h"
+    header "Rangefinder.h"
+
+    export *
+}
