@@ -9,8 +9,12 @@
 
 package rangefinder
 
-import "fmt"
-import "image"
+import (
+	_ "fmt"
+	"image"
+	"image/color"
+	"math"
+)
 
 // Defines an image as a two dimensional array of hues
 // from the HSV colorspace
@@ -21,8 +25,8 @@ type ImageMatrix struct {
 }
 
 // Generates a new ImageMatrix struct given an input
-// image of type image.Image
-func NewImageMatrix(inputImage *image.Image) *ImageMatrix {
+// image of type image.RGBA
+func NewImageMatrix(inputImage *image.RGBA) *ImageMatrix {
 	// Get Image width and height
 	bounds := inputImage.Bounds()
 	width := bounds.Max.X
@@ -39,30 +43,52 @@ func NewImageMatrix(inputImage *image.Image) *ImageMatrix {
 	return &ImageMatrix{width, height, image}
 }
 
-// Defines a new image in binary greyscale using integer values
-// 0 or 1
+// Defines a new image in binary greyscale using bool values
 type MonoImageMatrix struct {
-	width  int
-	height int
-	image  [][]bool
+	width         int
+	height        int
+	valueTreshold float64
+	image         [][]bool
 }
 
-// Generates a new MonoImageMatrix struct given an image's
-// Width and Height
-// Defaults to all 0
-func NewMonoImageMatrix(width, height int) *MonoImageMatrix {
+// Generates a new MonoImageMatrix struct given an image of type image.RGBA,
+// and the treshold at which the Value (Lume) of an image is considered a 1
+// or a 0 such that:  1 <- pixel >= valueThreshold, 0 <- pixel < valueThreshold
+func NewMonoImageMatrix(inputImage *image.RGBA, valueThreshold float64) *MonoImageMatrix {
+	// Get Image width and height
+	bounds := inputImage.Bounds()
+	width := bounds.Max.X
+	height := bounds.Max.Y
+
 	image := make([][]bool, height)
 	for i := range image {
 		image[i] = make([]bool, width)
+		for j := range image[i] {
+			val := getValueFromRGBA(inputImage.At(i, j))
+			image[i][j] = val >= valueThreshold
+		}
 	}
-	return &MonoImageMatrix{width, height, image}
+	return &MonoImageMatrix{width, height, valueThreshold, image}
 }
 
-//type Pixel struct {
-//x   int
-//y   int
-//hue float64
-//}
+// Returns an empty greyscale image of width and height
+// Defaults to all pixels false and a valueThreshold of 0
+func NewEmptyMonoImageMatrix(width, height int) *MonoImageMatrix {
+	image := make([][]bool, height)
+	for i := range image {
+		image[i] = make([]bool, width)
+		for j := range image[i] {
+			image[i][j] = false
+		}
+	}
+	return &MonoImageMatrix{width, height, 0, image}
+}
+
+type Pixel struct {
+	x   int
+	y   int
+	hue float64
+}
 
 // Binds the pixel offset of the laser dot from the center plane
 // of the image to a specified inital distance of units.
@@ -78,7 +104,7 @@ func (image ImageMatrix) filterImage() ImageMatrix { return image }
 // match the hue, plus or minus the threshold value, will be marked true
 // on a binary image.
 func detectDotInImage(image ImageMatrix, laserHue int) MonoImageMatrix {
-	dotImage := NewMonoImageMatrix(image.width, image.height)
+	dotImage := NewEmptyMonoImageMatrix(image.width, image.height)
 	return *dotImage
 }
 
@@ -88,8 +114,18 @@ func getCentroid(monoImage MonoImageMatrix) Pixel {
 	return centroid
 }
 
+// Returns the Value (Lume) as a float64 from an RGBA Color
+func getValueFromRGBA(rgba color.Color) float64 {
+	red, green, blue, _ := rgba.RGBA()
+	r := float64(red)
+	g := float64(green)
+	b := float64(blue)
+
+	return math.Max(math.Max(r, g), b)
+}
+
 // Returns a Hue angle as a float64 from an RGBA Color
-func getHueFromRGBA(rgba *image.Color) float64 {
+func getHueFromRGBA(rgba color.Color) float64 {
 	red, green, blue, _ := rgba.RGBA()
 	r := float64(red)
 	g := float64(green)
