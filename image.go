@@ -84,12 +84,6 @@ func NewEmptyMonoImageMatrix(width, height int) *MonoImageMatrix {
 	return &MonoImageMatrix{width, height, 0, image}
 }
 
-type Pixel struct {
-	x   int
-	y   int
-	hue float64
-}
-
 // Binds the pixel offset of the laser dot from the center plane
 // of the image to a specified inital distance of units.
 // Example: (image, 0.64, 1, "meters")
@@ -124,25 +118,42 @@ func getValueFromRGBA(rgba color.Color) float64 {
 	return math.Max(math.Max(r, g), b)
 }
 
+// A pixel for an image defined in the
+// HSV colorspace
+type Pixel struct {
+	hue float64
+	sat float64
+	val float64
+}
+
 // Returns a Hue angle as a float64 from an RGBA Color
-func getHueFromRGBA(rgba color.Color) float64 {
+func getHSVFromRGBA(rgba *image.Color) Pixel {
+	
+	//Get RGB values
 	red, green, blue, _ := rgba.RGBA()
 	r := float64(red)
 	g := float64(green)
 	b := float64(blue)
 
+	//Get min and max for RGB
 	min := math.Min(math.Min(r, g), b)
 	max := math.Max(math.Max(r, g), b)
+	
+	//Get delta for max and min
+	delta := max - min
 
 	var hue float64 = 0.0
+	var sat float64 = 0.0
+	var val float64 = 0.0
 
+	//Calculate hue value
 	switch max {
-	case r:
-		hue = (g - b) / (max - min)
-	case g:
-		hue = 2.0 + (b-r)/(max-min)
-	case b:
-		hue = 4.0 + (r-g)/(max-min)
+		case r:
+			hue = (g - b) / (max - min)
+		case g:
+			hue = 2.0 + (b-r)/(max-min)
+		case b:
+			hue = 4.0 + (r-g)/(max-min)
 	}
 
 	hue = hue * 60
@@ -150,6 +161,17 @@ func getHueFromRGBA(rgba color.Color) float64 {
 	if hue < 0 {
 		hue += 360
 	}
+	
+	//Calculate sat value
+	if max = 0 {
+		sat = 0.0
+	}
+	else {
+		sat = delta / max
+	}
+	
+	//Set val
+	val = max
 
-	return hue
+	return Pixel{hue, sat, val}
 }
