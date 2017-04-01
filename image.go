@@ -127,7 +127,7 @@ type Pixel struct {
 }
 
 // Returns a Hue angle as a float64 from an RGBA Color
-func getHSVFromRGBA(rgba *image.Color) Pixel {
+func getHSVFromRGBA(rgba *image.Color) *Pixel {
 	
 	//Get RGB values
 	red, green, blue, _ := rgba.RGBA()
@@ -163,7 +163,7 @@ func getHSVFromRGBA(rgba *image.Color) Pixel {
 	}
 	
 	//Calculate sat value
-	if max = 0 {
+	if max == 0 {
 		sat = 0.0
 	}
 	else {
@@ -173,5 +173,5 @@ func getHSVFromRGBA(rgba *image.Color) Pixel {
 	//Set val
 	val = max
 
-	return Pixel{hue, sat, val}
+	return &Pixel{hue, sat, val}
 }
