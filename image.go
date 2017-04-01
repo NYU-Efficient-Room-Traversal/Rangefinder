@@ -37,7 +37,8 @@ func NewImageMatrix(inputImage *image.RGBA) *ImageMatrix {
 	for i := range image {
 		image[i] = make([]float64, width)
 		for j := range image[i] {
-			image[i][j] = getHueFromRGBA(inputImage.At(i, j))
+			pixel := getHSVFromRGBA(inputImage.At(i, j))
+			image[i][j] = pixel.hue
 		}
 	}
 	return &ImageMatrix{width, height, image}
@@ -127,8 +128,8 @@ type Pixel struct {
 }
 
 // Returns a Hue angle as a float64 from an RGBA Color
-func getHSVFromRGBA(rgba *image.Color) *Pixel {
-	
+func getHSVFromRGBA(rgba color.Color) *Pixel {
+
 	//Get RGB values
 	red, green, blue, _ := rgba.RGBA()
 	r := float64(red)
@@ -138,7 +139,7 @@ func getHSVFromRGBA(rgba *image.Color) *Pixel {
 	//Get min and max for RGB
 	min := math.Min(math.Min(r, g), b)
 	max := math.Max(math.Max(r, g), b)
-	
+
 	//Get delta for max and min
 	delta := max - min
 
@@ -148,12 +149,12 @@ func getHSVFromRGBA(rgba *image.Color) *Pixel {
 
 	//Calculate hue value
 	switch max {
-		case r:
-			hue = (g - b) / (max - min)
-		case g:
-			hue = 2.0 + (b-r)/(max-min)
-		case b:
-			hue = 4.0 + (r-g)/(max-min)
+	case r:
+		hue = (g - b) / (max - min)
+	case g:
+		hue = 2.0 + (b-r)/(max-min)
+	case b:
+		hue = 4.0 + (r-g)/(max-min)
 	}
 
 	hue = hue * 60
@@ -161,15 +162,14 @@ func getHSVFromRGBA(rgba *image.Color) *Pixel {
 	if hue < 0 {
 		hue += 360
 	}
-	
+
 	//Calculate sat value
 	if max == 0 {
 		sat = 0.0
-	}
-	else {
+	} else {
 		sat = delta / max
 	}
-	
+
 	//Set val
 	val = max
 
