@@ -21,7 +21,8 @@ import (
 type ImageMatrix struct {
 	width  int
 	height int
-	image  [][]float64
+	//image  [][]float64
+	image [][]*Pixel
 }
 
 // Generates a new ImageMatrix struct given an input
@@ -33,12 +34,12 @@ func NewImageMatrix(inputImage *image.RGBA) *ImageMatrix {
 	height := bounds.Max.Y
 
 	// Fill the image 2D slice with hues
-	image := make([][]float64, height)
+	image := make([][]*Pixel, height)
 	for i := range image {
-		image[i] = make([]float64, width)
+		image[i] = make([]*Pixel, width)
 		for j := range image[i] {
 			pixel := getHSVFromRGBA(inputImage.At(i, j))
-			image[i][j] = pixel.hue
+			image[i][j] = pixel
 		}
 	}
 	return &ImageMatrix{width, height, image}
@@ -65,7 +66,7 @@ func NewMonoImageMatrix(inputImage *image.RGBA, valueThreshold float64) *MonoIma
 	for i := range image {
 		image[i] = make([]bool, width)
 		for j := range image[i] {
-			val := getValueFromRGBA(inputImage.At(i, j))
+			val := getHSVFromRGBA(inputImage.At(i, j)).val
 			image[i][j] = val >= valueThreshold
 		}
 	}
@@ -85,6 +86,19 @@ func NewEmptyMonoImageMatrix(width, height int) *MonoImageMatrix {
 	return &MonoImageMatrix{width, height, 0, image}
 }
 
+// Converts an ImageMatrix to a MonoImageMatrix using value thresholding
+func (image ImageMatrix) ConvertToMonoImageMatrix(valueThreshold float64) *MonoImageMatrix {
+	mono := make([][]bool, image.height)
+	for i, _ := range mono {
+		mono[i] = make([]bool, image.width)
+		for j, _ := range mono[i] {
+			val := image.image[i][j].val
+			mono[i][j] = val >= valueThreshold
+		}
+	}
+	return &MonoImageMatrix{image.width, image.height, valueThreshold, mono}
+}
+
 // Binds the pixel offset of the laser dot from the center plane
 // of the image to a specified inital distance of units.
 // Example: (image, 0.64, 1, "meters")
@@ -93,7 +107,9 @@ func Calibrate(image ImageMatrix, laserHue float64, initialDistance int, unitSuf
 
 // Runs the image through a filter pass, to isolate the laser dot in the
 // image by decreasing luminosity and apply edge detection
-func (image ImageMatrix) filterImage() ImageMatrix { return image }
+func (image ImageMatrix) filterImage() ImageMatrix {
+	return image
+}
 
 // Iterates through image array to detect the laser dot. The pixels that
 // match the hue, plus or minus the threshold value, will be marked true
@@ -107,16 +123,6 @@ func detectDotInImage(image ImageMatrix, laserHue int) MonoImageMatrix {
 func getCentroid(monoImage MonoImageMatrix) Pixel {
 	var centroid Pixel
 	return centroid
-}
-
-// Returns the Value (Lume) as a float64 from an RGBA Color
-func getValueFromRGBA(rgba color.Color) float64 {
-	red, green, blue, _ := rgba.RGBA()
-	r := float64(red)
-	g := float64(green)
-	b := float64(blue)
-
-	return math.Max(math.Max(r, g), b)
 }
 
 // A pixel for an image defined in the
@@ -175,3 +181,13 @@ func getHSVFromRGBA(rgba color.Color) *Pixel {
 
 	return &Pixel{hue, sat, val}
 }
+
+//// Returns the Value (Lume) as a float64 from an RGBA Color
+//func getValueFromRGBA(rgba color.Color) float64 {
+//red, green, blue, _ := rgba.RGBA()
+//r := float64(red)
+//g := float64(green)
+//b := float64(blue)
+
+//return math.Max(math.Max(r, g), b)
+//}
