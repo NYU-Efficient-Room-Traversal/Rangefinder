@@ -47,10 +47,10 @@ func NewImageMatrix(inputImage *image.RGBA) *ImageMatrix {
 
 // Defines a new image in binary greyscale using bool values
 type MonoImageMatrix struct {
-	width         int
-	height        int
-	valueTreshold float64
-	image         [][]bool
+	Width         int
+	Height        int
+	ValueTreshold float64
+	Image         [][]bool
 }
 
 // Generates a new MonoImageMatrix struct given an image of type image.RGBA,

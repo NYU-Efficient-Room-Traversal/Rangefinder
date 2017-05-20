@@ -17,9 +17,9 @@ import "math"
 // if the dot is to the right of the center plane.
 func GetLaserOffset(image MonoImageMatrix) int {
 	var laserPlane int
-	centerPlane := image.width / 2
-	for w, _ := range image.image {
-		for _, v := range image.image[w] {
+	centerPlane := image.Width / 2
+	for w, _ := range image.Image {
+		for _, v := range image.Image[w] {
 			if v {
 				laserPlane = w
 			}
