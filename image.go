@@ -10,7 +10,7 @@
 package rangefinder
 
 import (
-	_ "fmt"
+	"fmt"
 	"image"
 	"image/color"
 	"math"
@@ -66,7 +66,7 @@ func NewMonoImageMatrix(inputImage *image.RGBA, valueThreshold float64) *MonoIma
 	for i := range image {
 		image[i] = make([]bool, width)
 		for j := range image[i] {
-			val := getHSVFromRGBA(inputImage.At(i, j)).val
+			val := getHSVFromRGBA(inputImage.At(j, i)).val
 			image[i][j] = val >= valueThreshold
 		}
 	}
@@ -135,12 +135,13 @@ type Pixel struct {
 
 // Returns a Hue angle as a float64 from an RGBA Color
 func getHSVFromRGBA(rgba color.Color) *Pixel {
-
 	//Get RGB values
 	red, green, blue, _ := rgba.RGBA()
 	r := float64(red)
 	g := float64(green)
 	b := float64(blue)
+    
+    fmt.Println(r, g, b)
 
 	//Get min and max for RGB
 	min := math.Min(math.Min(r, g), b)
@@ -178,6 +179,8 @@ func getHSVFromRGBA(rgba color.Color) *Pixel {
 
 	//Set val
 	val = max
+	
+	fmt.Println(val)
 
 	return &Pixel{hue, sat, val}
 }
