@@ -140,44 +140,50 @@ func getHSVFromRGBA(rgba color.Color) *Pixel {
 	r := float64(red)
 	g := float64(green)
 	b := float64(blue)
+	
+	//Set up computed variables
+	var hue float64 = 0.0
+	var sat float64 = 0.0
+	var val float64 = 0.0
+	var d float64 = 0.0
+	var h float64 = 0.0
     
     fmt.Println(r, g, b)
+	
+	//Standardize rgb values
+	r = r/255
+	g = g/255
+	b = b/255
 
 	//Get min and max for RGB
 	min := math.Min(math.Min(r, g), b)
 	max := math.Max(math.Max(r, g), b)
+	
+	//If min is equal to max, we can assume it is black and white
+	if min == max {
+		return &Pixel{0, 0, min}
+	}
 
 	//Get delta for max and min
-	delta := max - min
-
-	var hue float64 = 0.0
-	var sat float64 = 0.0
-	var val float64 = 0.0
-
-	//Calculate hue value
-	switch max {
-	case r:
-		hue = (g - b) / (max - min)
-	case g:
-		hue = 2.0 + (b-r)/(max-min)
-	case b:
-		hue = 4.0 + (r-g)/(max-min)
+	if r == min {
+		d = g - b
+		h = 3
 	}
-
-	hue = hue * 60
-
-	if hue < 0 {
-		hue += 360
+	else {
+		if b == min
+		{
+			d = r - g
+			h = 1
+		}
+		else
+		{
+			d = b - r
+			h = 5
+		}
 	}
-
-	//Calculate sat value
-	if max == 0 {
-		sat = 0.0
-	} else {
-		sat = delta / max
-	}
-
-	//Set val
+	
+	hue = 60 * (h - d/(max - min))
+	sat = (max - min)/max
 	val = max
 	
 	fmt.Println(val)
