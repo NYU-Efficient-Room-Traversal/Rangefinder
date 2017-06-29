@@ -10,7 +10,6 @@
 package rangefinder
 
 import (
-	"fmt"
 	"image"
 	"image/color"
 	"math"
@@ -148,12 +147,10 @@ func getHSVFromRGBA(rgba color.Color) *Pixel {
 	var d float64 = 0.0
 	var h float64 = 0.0
 
-	fmt.Println(r, g, b)
-
 	//Standardize rgb values
-	r = r / 255
-	g = g / 255
-	b = b / 255
+	r = r / 65535.0
+	g = g / 65535.0
+	b = b / 65535.0
 
 	//Get min and max for RGB
 	min := math.Min(math.Min(r, g), b)
@@ -182,17 +179,5 @@ func getHSVFromRGBA(rgba color.Color) *Pixel {
 	sat = (max - min) / max
 	val = max
 
-	fmt.Println(val)
-
 	return &Pixel{hue, sat, val}
 }
-
-//// Returns the Value (Lume) as a float64 from an RGBA Color
-//func getValueFromRGBA(rgba color.Color) float64 {
-//red, green, blue, _ := rgba.RGBA()
-//r := float64(red)
-//g := float64(green)
-//b := float64(blue)
-
-//return math.Max(math.Max(r, g), b)
-//}
