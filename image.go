@@ -10,6 +10,7 @@
 package rangefinder
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 	"math"
@@ -18,10 +19,9 @@ import (
 // Defines an image as a two dimensional array of hues
 // from the HSV colorspace
 type ImageMatrix struct {
-	width  int
-	height int
-	//image  [][]float64
-	image [][]*Pixel
+	Width  int
+	Height int
+	Image  [][]*Pixel
 }
 
 // Generates a new ImageMatrix struct given an input
@@ -86,16 +86,45 @@ func NewEmptyMonoImageMatrix(width, height int) *MonoImageMatrix {
 }
 
 // Converts an ImageMatrix to a MonoImageMatrix using value thresholding
-func (image ImageMatrix) ConvertToMonoImageMatrix(valueThreshold float64) *MonoImageMatrix {
-	mono := make([][]bool, image.height)
+func (image ImageMatrix) ConvertToMonoImageMatrixFromValue(valueThreshold float64) *MonoImageMatrix {
+	mono := make([][]bool, image.Height)
 	for i, _ := range mono {
-		mono[i] = make([]bool, image.width)
+		mono[i] = make([]bool, image.Width)
 		for j, _ := range mono[i] {
-			val := image.image[i][j].val
+			val := image.Image[i][j].val
 			mono[i][j] = val >= valueThreshold
 		}
 	}
-	return &MonoImageMatrix{image.width, image.height, valueThreshold, mono}
+	return &MonoImageMatrix{image.Width, image.Height, valueThreshold, mono}
+}
+
+func (image ImageMatrix) ConvertToMonoImageMatrixFromHue(hueTarget, hueThreshold float64) *MonoImageMatrix {
+	mono := make([][]bool, image.Height)
+	for i, _ := range mono {
+		mono[i] = make([]bool, image.Width)
+		for j, _ := range mono[i] {
+			hue := image.Image[i][j].hue
+			hueDifference := math.Abs(hue - hueTarget)
+			mono[i][j] = hueThreshold >= hueDifference
+		}
+	}
+	return &MonoImageMatrix{image.Width, image.Height, hueThreshold, mono}
+}
+
+func GetMonoIntersectMatrix(mono1, mono2 *MonoImageMatrix) (*MonoImageMatrix, error) {
+	// Images must be the same size
+	if mono1.Width != mono2.Width || mono1.Height != mono2.Height {
+		return nil, fmt.Errorf("MonoImageMatrix: Cannot get intersect of diferent sizes")
+	}
+
+	intersect := NewEmptyMonoImageMatrix(mono1.Width, mono1.Height)
+	for i, _ := range intersect.Image {
+		for j, _ := range intersect.Image[i] {
+			intersect.Image[i][j] = mono1.Image[i][j] && mono2.Image[i][j]
+		}
+	}
+
+	return intersect, nil
 }
 
 // Binds the pixel offset of the laser dot from the center plane
@@ -114,13 +143,18 @@ func (image ImageMatrix) filterImage() ImageMatrix {
 // match the hue, plus or minus the threshold value, will be marked true
 // on a binary image.
 func detectDotInImage(image ImageMatrix, laserHue int) MonoImageMatrix {
-	dotImage := NewEmptyMonoImageMatrix(image.width, image.height)
+	dotImage := NewEmptyMonoImageMatrix(image.Width, image.Height)
 	return *dotImage
 }
 
+// TODO
 // Returns the centroid of the marked pixel cluster of a binary image
 func getCentroid(monoImage MonoImageMatrix) Pixel {
 	var centroid Pixel
+	//var xPixel int
+	//var yPixel int
+
+	//for y := 0
 	return centroid
 }
 
@@ -144,8 +178,8 @@ func getHSVFromRGBA(rgba color.Color) *Pixel {
 	var hue float64 = 0.0
 	var sat float64 = 0.0
 	var val float64 = 0.0
-	var d float64 = 0.0
-	var h float64 = 0.0
+	//var d float64 = 0.0
+	//var h float64 = 0.0
 
 	//Standardize rgb values
 	r = r / 65535.0
@@ -161,21 +195,22 @@ func getHSVFromRGBA(rgba color.Color) *Pixel {
 		return &Pixel{0, 0, min}
 	}
 
-	//Get delta for max and min
-	if r == min {
-		d = g - b
-		h = 3
+	// Calculate Hue
+	if r == max {
+		hue = (g - b) / (max - min)
+	} else if g == max {
+		hue = 2.0 + (b-r)/(max-min)
 	} else {
-		if b == min {
-			d = r - g
-			h = 1
-		} else {
-			d = b - r
-			h = 5
-		}
+		hue = 4.0 + (r-g)/(max-min)
 	}
 
-	hue = 60 * (h - d/(max-min))
+	hue = hue * 60
+
+	if hue < 0 {
+		hue = hue + 360
+	}
+
+	// Calculate Saturation and Value
 	sat = (max - min) / max
 	val = max
 
