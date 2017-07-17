@@ -16,6 +16,10 @@ import (
 	"math"
 )
 
+//
+// ImageMatrix
+//
+
 // Defines an image as a two dimensional array of hues
 // from the HSV colorspace
 type ImageMatrix struct {
@@ -44,33 +48,54 @@ func NewImageMatrix(inputImage *image.RGBA) *ImageMatrix {
 	return &ImageMatrix{width, height, image}
 }
 
+//
+// MonoImageMatrix
+//
+
 // Defines a new image in binary greyscale using bool values
 type MonoImageMatrix struct {
-	Width         int
-	Height        int
-	ValueTreshold float64
-	Image         [][]bool
+	Width        int
+	Height       int
+	ValThreshold float64
+	HueThreshold float64
+	Image        [][]bool
+	Info         *MonoImageInfo
 }
 
-// Generates a new MonoImageMatrix struct given an image of type image.RGBA,
-// and the treshold at which the Value (Lume) of an image is considered a 1
-// or a 0 such that:  1 <- pixel >= valueThreshold, 0 <- pixel < valueThreshold
-func NewMonoImageMatrix(inputImage *image.RGBA, valueThreshold float64) *MonoImageMatrix {
-	// Get Image width and height
-	bounds := inputImage.Bounds()
-	width := bounds.Max.X
-	height := bounds.Max.Y
+// Meta infomration about a MonoImageMatrix for the purpose
+// of machine vision algorithms and other image processing functions
+type MonoImageInfo struct {
 
-	image := make([][]bool, height)
-	for i := range image {
-		image[i] = make([]bool, width)
-		for j := range image[i] {
-			val := getHSVFromRGBA(inputImage.At(j, i)).val
-			image[i][j] = val >= valueThreshold
-		}
-	}
-	return &MonoImageMatrix{width, height, valueThreshold, image}
+	// Array of Coords that correspond
+	// to the first true value seen after
+	// prev false values when parsing a
+	// MonoImageMatrix
+	possibleBlobs []coord
+
+	// The center of mass of the blobs found
+	// explicitly by a blob detection algorithm
+	foundBlobCentroids []coord
 }
+
+//// Generates a new MonoImageMatrix struct given an image of type image.RGBA,
+//// and the treshold at which the Value (Lume) of an image is considered a 1
+//// or a 0 such that:  1 <- pixel >= valueThreshold, 0 <- pixel < valueThreshold
+//func NewMonoImageMatrix(inputImage *image.RGBA, valueThreshold float64) *MonoImageMatrix {
+//// Get Image width and height
+//bounds := inputImage.Bounds()
+//width := bounds.Max.X
+//height := bounds.Max.Y
+
+//image := make([][]bool, height)
+//for i := range image {
+//image[i] = make([]bool, width)
+//for j := range image[i] {
+//val := getHSVFromRGBA(inputImage.At(j, i)).val
+//image[i][j] = val >= valueThreshold
+//}
+//}
+//return &MonoImageMatrix{width, height, valueThreshold, image}
+//}
 
 // Returns an empty greyscale image of width and height
 // Defaults to all pixels false and a valueThreshold of 0
@@ -82,10 +107,12 @@ func NewEmptyMonoImageMatrix(width, height int) *MonoImageMatrix {
 			image[i][j] = false
 		}
 	}
-	return &MonoImageMatrix{width, height, 0, image}
+	return &MonoImageMatrix{width, height, 0.0, 0.0, image, nil}
 }
 
 // Converts an ImageMatrix to a MonoImageMatrix using value thresholding
+// Creats a mask where true values are defined for pixels above or equal to the
+// valueThreshold and false are defined for pixels below the valueThreshold
 func (image ImageMatrix) ConvertToMonoImageMatrixFromValue(valueThreshold float64) *MonoImageMatrix {
 	mono := make([][]bool, image.Height)
 	for i, _ := range mono {
@@ -95,9 +122,14 @@ func (image ImageMatrix) ConvertToMonoImageMatrixFromValue(valueThreshold float6
 			mono[i][j] = val >= valueThreshold
 		}
 	}
-	return &MonoImageMatrix{image.Width, image.Height, valueThreshold, mono}
+	return &MonoImageMatrix{image.Width, image.Height, valueThreshold, 0.0, mono, nil}
 }
 
+// Converts an ImageMatrix to a MonoImageMatrix using hue thresholding where hueTarget
+// is the hue angle to be thresheld, and hueThreshold is the maxiumum difference in hue angle
+// allowed for a pixel
+// Creates a mask where true values are defined for pixels with hue differences within the hue threshold
+// and false for pixels with hue differences greater than the hue threshold
 func (image ImageMatrix) ConvertToMonoImageMatrixFromHue(hueTarget, hueThreshold float64) *MonoImageMatrix {
 	mono := make([][]bool, image.Height)
 	for i, _ := range mono {
@@ -108,9 +140,11 @@ func (image ImageMatrix) ConvertToMonoImageMatrixFromHue(hueTarget, hueThreshold
 			mono[i][j] = hueThreshold >= hueDifference
 		}
 	}
-	return &MonoImageMatrix{image.Width, image.Height, hueThreshold, mono}
+	return &MonoImageMatrix{image.Width, image.Height, 0.0, hueThreshold, mono, nil}
 }
 
+// Creates a MonoImageMatrix from the set intersect of two MonoImageMatrix structs.
+// Will return nil and an error if the images are not the same size
 func GetMonoIntersectMatrix(mono1, mono2 *MonoImageMatrix) (*MonoImageMatrix, error) {
 	// Images must be the same size
 	if mono1.Width != mono2.Width || mono1.Height != mono2.Height {
@@ -127,24 +161,37 @@ func GetMonoIntersectMatrix(mono1, mono2 *MonoImageMatrix) (*MonoImageMatrix, er
 	return intersect, nil
 }
 
-// Binds the pixel offset of the laser dot from the center plane
-// of the image to a specified inital distance of units.
-// Example: (image, 0.64, 1, "meters")
-func Calibrate(image ImageMatrix, laserHue float64, initialDistance int, unitSuffix string) {
+//
+// Pixel (and coord)
+//
+
+// A pixel for an image defined in the
+// HSV colorspace
+type Pixel struct {
+	hue float64
+	sat float64
+	val float64
 }
 
-// Runs the image through a filter pass, to isolate the laser dot in the
-// image by decreasing luminosity and apply edge detection
-func (image ImageMatrix) filterImage() ImageMatrix {
-	return image
+// Represents a Pixel location in an image
+type coord struct {
+	x int
+	y int
 }
 
-// Iterates through image array to detect the laser dot. The pixels that
-// match the hue, plus or minus the threshold value, will be marked true
-// on a binary image.
-func detectDotInImage(image ImageMatrix, laserHue int) MonoImageMatrix {
-	dotImage := NewEmptyMonoImageMatrix(image.Width, image.Height)
-	return *dotImage
+// Returns a new Coord struct from x, y
+func newCoord(x, y int) *coord {
+	return &coord{x, y}
+}
+
+//
+// Dot Detection Functions
+//
+
+// Finds blobs in MonoImageMatrix and then appends results to
+// the MonoImageMatrix's MonoImageInfo struct in the
+// foundBlobCentroids field
+func (image MonoImageMatrix) findBlobs() {
 }
 
 // TODO
@@ -158,13 +205,29 @@ func getCentroid(monoImage MonoImageMatrix) Pixel {
 	return centroid
 }
 
-// A pixel for an image defined in the
-// HSV colorspace
-type Pixel struct {
-	hue float64
-	sat float64
-	val float64
+//
+// Exported Functions
+//
+
+// TODO
+// Binds the pixel offset of the laser dot from the center plane
+// of the image to a specified inital distance of units.
+// Example: (image, 0.64, 1, "meters")
+func Calibrate(image ImageMatrix, laserHue float64, initialDistance int, unitSuffix string) {
 }
+
+// TODO
+// Iterates through image array to detect the laser dot. The pixels that
+// match the hue, plus or minus the threshold value, will be marked true
+// on a binary image.
+func detectDotInImage(image ImageMatrix, laserHue int) MonoImageMatrix {
+	dotImage := NewEmptyMonoImageMatrix(image.Width, image.Height)
+	return *dotImage
+}
+
+//
+// Color Conversion
+//
 
 // Returns a Hue angle as a float64 from an RGBA Color
 func getHSVFromRGBA(rgba color.Color) *Pixel {
