@@ -192,74 +192,76 @@ func newCoord(x, y int) *coord {
 // the MonoImageMatrix's MonoImageInfo struct in the
 // foundBlobCentroids field
 func (image *MonoImageMatrix) FindBlobs() [][]*coord {
-	const MIN_BLOB_SIZE = 10
+	const MIN_BLOB_SIZE = 1
 	var blobs [][]*coord
 	img := image.Image
 
-	for i := range img {
-		for j := range img[i] {
+	var visited []*coord
 
-			if !img[i][j] {
-				continue
-			}
-
-			blobs = append(blobs, findBlobHelper(image, newCoord(i, j), nil))
-		}
-	}
-
-	fmt.Println(blobs)
-
-	return blobs
-}
-
-// TODO: Fix this
-func findBlobHelper(image *MonoImageMatrix, start *coord, visited []*coord) []*coord {
-	i := start.x
-	j := start.y
-	img := image.Image
-	const MIN_BLOB_SIZE = 10
-
-	inVisited := func() bool {
+	// Function to search visited array
+	inVisited := func(x, y int) bool {
 		for _, px := range visited {
-			if px.x == i && px.y == j {
+			if px.x == x && px.y == y {
 				return true
 			}
 		}
 		return false
 	}
 
-	// Check for black pixel
-	if !img[i][j] && inVisited() {
+	for i := range img {
+		for j := range img[i] {
 
-		// If this was the end of a current blob, append it
-		if len(visited) > MIN_BLOB_SIZE {
-			return visited
-		} else {
-			return nil
+			if !img[i][j] || inVisited(i, j) {
+				continue
+			}
+
+			visited = findBlobHelper(image, newCoord(i, j), nil)
+
+			if len(visited) >= MIN_BLOB_SIZE {
+				blobs = append(blobs, visited)
+			}
 		}
+	}
+
+	return blobs
+}
+
+func findBlobHelper(image *MonoImageMatrix, start *coord, visited []*coord) []*coord {
+	i := start.x
+	j := start.y
+
+	// Function to search visited array
+	inVisited := func(x, y int) bool {
+		for _, px := range visited {
+			if px.x == x && px.y == y {
+				return true
+			}
+		}
+		return false
 	}
 
 	// Valid Pixel, Check Neighbors
 	currentCoord := newCoord(i, j)
-	visited = append(visited, currentCoord)
+	if !inVisited(i, j) {
+		visited = append(visited, currentCoord)
+	} else {
+		fmt.Println("CURRENT IN VISITED")
+	}
 
-	// Append found neighbors
+	// Find neighbors
 	neighbors := checkNeighbors(image, currentCoord)
 	if len(neighbors) == 0 {
+		fmt.Println("Ran out of neighbors, returning...")
 		return visited
 	}
 
 	// Run algorithm using neighbors
 	for _, px := range neighbors {
-
-		fmt.Println(px.x, px.y)
-
-		// append is a variadic function and the ... allow us to append
-		// multiple arguments
-		visited = append(visited, findBlobHelper(image, px, neighbors)...)
+		if !inVisited(px.x, px.y) {
+			visited = findBlobHelper(image, px, visited)
+		}
 	}
 
-	fmt.Println("Find Blobs reached end of function when it should not")
 	return visited
 }
 
@@ -267,8 +269,8 @@ func checkNeighbors(image *MonoImageMatrix, start *coord) []*coord {
 	var neighbors []*coord
 	i := start.x
 	j := start.y
-	w := image.Width
-	h := image.Height
+	w := image.Width - 1
+	h := image.Height - 1
 
 	if !(i+1 > w) {
 		if !(j+1 > h) && image.Image[i+1][j+1] {
@@ -291,15 +293,19 @@ func checkNeighbors(image *MonoImageMatrix, start *coord) []*coord {
 	return neighbors
 }
 
-// TODO
 // Returns the centroid of the marked pixel cluster of a binary image
-func getCentroid(monoImage MonoImageMatrix) Pixel {
-	var centroid Pixel
-	//var xPixel int
-	//var yPixel int
+func getCentroid(coords []*coord) *coord {
+	avgX := 0
+	avgY := 0
+	for _, px := range coords {
+		avgX += px.x
+		avgY += px.y
+	}
 
-	//for y := 0
-	return centroid
+	// Int division truncates decimals
+	avgX = avgX / len(coords)
+	avgY = avgY / len(coords)
+	return newCoord(avgX, avgY)
 }
 
 //
