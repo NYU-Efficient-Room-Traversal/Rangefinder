@@ -188,83 +188,79 @@ func newCoord(x, y int) *coord {
 // Dot Detection Functions
 //
 
-// TODO: Use the recursive function
 // Finds blobs in MonoImageMatrix and then appends results to
 // the MonoImageMatrix's MonoImageInfo struct in the
 // foundBlobCentroids field
-func (image *MonoImageMatrix) findBlobs() {
+func (image *MonoImageMatrix) FindBlobs() [][]*coord {
 	const MIN_BLOB_SIZE = 10
 	var blobs [][]*coord
-	var currentBlob []*coord
-
 	img := image.Image
 
-	for i, e := range img {
-		for j, _ := range img[i] {
+	for i := range img {
+		for j := range img[i] {
 
-			// Check for black pixel
 			if !img[i][j] {
-
-				// If this was the end of a current blob, append it
-				if len(currentBlob) < MIN_BLOB_SIZE {
-					blobs = append(blobs, currentBlob)
-					currentBlob = nil
-				}
 				continue
 			}
 
-			// Valid Pixel, Check Neighbors
-			currentCoord = newCoord(i, j)
-			currentBlob = append(currentBlob, currentCoord)
-			neighbors := checkNeighbors(image, currentCoord)
-
-			// Append found neighbors
-			if len(neighbors) != 0 {
-				currentBlob = append(currentBlob, neighbors)
-			}
-
-			// Run algorithm using neighbors
-			for _, px := range neighbors {
-				currentBlob = append(currentBlob, findBlobHelper(image, px, neighbors))
-			}
+			blobs = append(blobs, findBlobHelper(image, newCoord(i, j), nil))
 		}
 	}
 
+	fmt.Println(blobs)
+
+	return blobs
 }
 
-func findBlobHelper(image *MonoImageMatrix, start *coord, visited []*coord) {
+// TODO: Fix this
+func findBlobHelper(image *MonoImageMatrix, start *coord, visited []*coord) []*coord {
+	i := start.x
+	j := start.y
 	img := image.Image
+	const MIN_BLOB_SIZE = 10
 
-	for i, _ := range img {
-		for j, _ := range img[i] {
-
-			// Check for black pixel
-			if !img[i][j] {
-
-				// If this was the end of a current blob, append it
-				if len(visited) > MIN_BLOB_SIZE {
-					return visited
-				} else {
-					return nil
-				}
-			}
-
-			// Valid Pixel, Check Neighbors
-			currentCoord = newCoord(i, j)
-			visited = append(visited, currentCoord)
-
-			// Append found neighbors
-			neighbors := checkNeighbors(image, currentCoord)
-			if len(neighbors) == 0 {
-				return visited
-			}
-
-			// Run algorithm using neighbors
-			for _, px := range neighbors {
-				visited = append(currentBlob, findBlobHelper(image, px, neighbors))
+	inVisited := func() bool {
+		for _, px := range visited {
+			if px.x == i && px.y == j {
+				return true
 			}
 		}
+		return false
 	}
+
+	// Check for black pixel
+	if !img[i][j] && inVisited() {
+
+		// If this was the end of a current blob, append it
+		if len(visited) > MIN_BLOB_SIZE {
+			return visited
+		} else {
+			return nil
+		}
+	}
+
+	// Valid Pixel, Check Neighbors
+	currentCoord := newCoord(i, j)
+	visited = append(visited, currentCoord)
+
+	// Append found neighbors
+	neighbors := checkNeighbors(image, currentCoord)
+	if len(neighbors) == 0 {
+		return visited
+	}
+
+	// Run algorithm using neighbors
+	for _, px := range neighbors {
+
+		fmt.Println(px.x, px.y)
+
+		// append is a variadic function and the ... allow us to append
+		// multiple arguments
+		visited = append(visited, findBlobHelper(image, px, neighbors)...)
+	}
+
+	fmt.Println("Find Blobs reached end of function when it should not")
+	return visited
 }
 
 func checkNeighbors(image *MonoImageMatrix, start *coord) []*coord {
@@ -275,19 +271,19 @@ func checkNeighbors(image *MonoImageMatrix, start *coord) []*coord {
 	h := image.Height
 
 	if !(i+1 > w) {
-		if !(j+1 > h) && image.Image(i+1, j+1) {
+		if !(j+1 > h) && image.Image[i+1][j+1] {
 			neighbors = append(neighbors, newCoord(i+1, j+1))
 		}
-		if image.Image(i+1, j) && image.Image(i+1, j) {
+		if image.Image[i+1][j] && image.Image[i+1][j] {
 			neighbors = append(neighbors, newCoord(i+1, j))
 		}
 	}
 
 	if !(i-1 < 0) {
-		if !(j-1 < 0) && image.Image(i-1, j-1) {
+		if !(j-1 < 0) && image.Image[i-1][j-1] {
 			neighbors = append(neighbors, newCoord(i-1, j-1))
 		}
-		if image.Image(i-1, j) && image.Image(i-1, j) {
+		if image.Image[i-1][j] && image.Image[i-1][j] {
 			neighbors = append(neighbors, newCoord(i-1, j))
 		}
 	}
