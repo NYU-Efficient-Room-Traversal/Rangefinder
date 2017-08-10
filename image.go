@@ -243,16 +243,11 @@ func findBlobHelper(image *MonoImageMatrix, start *coord, visited []*coord) []*c
 
 	// Valid Pixel, Check Neighbors
 	currentCoord := newCoord(i, j)
-	if !inVisited(i, j) {
-		visited = append(visited, currentCoord)
-	} else {
-		fmt.Println("CURRENT IN VISITED")
-	}
+	visited = append(visited, currentCoord)
 
 	// Find neighbors
 	neighbors := checkNeighbors(image, currentCoord)
 	if len(neighbors) == 0 {
-		fmt.Println("Ran out of neighbors, returning...")
 		return visited
 	}
 

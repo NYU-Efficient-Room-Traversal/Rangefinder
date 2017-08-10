@@ -23,8 +23,6 @@ func TestFindBlobs(t *testing.T) {
 		fmt.Println("err")
 	}
 
-	fmt.Println(img.ColorModel())
-
 	mat := NewEmptyMonoImageMatrix(img.Bounds().Max.X, img.Bounds().Max.Y)
 	for x := 0; x < img.Bounds().Max.X; x++ {
 		for y := 0; y < img.Bounds().Max.Y; y++ {
@@ -32,7 +30,7 @@ func TestFindBlobs(t *testing.T) {
 			r, _, _, _ := img.At(x, y).RGBA()
 			if r == 65535 {
 				mat.Image[x][y] = true
-				fmt.Printf("(%v, %v)", x, y)
+				//fmt.Printf("(%v, %v)", x, y)
 			}
 		}
 	}
@@ -52,8 +50,8 @@ func TestFindBlobs(t *testing.T) {
 	fmt.Println("Finding Blobs...")
 	blobs := mat.FindBlobs()
 
-	fmt.Println("BLOBS:")
-	printArray(blobs)
+	//fmt.Println("BLOBS:")
+	//printArray(blobs)
 
 	var centroids []*coord
 	for _, arr := range blobs {
@@ -62,16 +60,6 @@ func TestFindBlobs(t *testing.T) {
 
 	fmt.Println("CENTROIDS")
 	printArraySingle(centroids)
-
-	//// Make comparison image from centroids
-	//centMat :=  NewEmptyMonoImageMatrix(img.Bounds().Max.X, img.Bounds().Max.Y)
-	//for c := range centroids {
-	//x := c.x
-	//y := c.y
-	//centMat.Image[x][y] = true
-	//}
-
-	//centMatImg := matToImage(centMat)
 }
 
 func printArraySingle(arr []*coord) {
@@ -90,18 +78,3 @@ func printArray(arr [][]*coord) {
 		fmt.Println("]")
 	}
 }
-
-//func matToImage(mat *MonoImageMatrix) image.Image {
-//img := image.NewGray(image.Rectangle{Max: image.Point{X: mat.Height, Y: mat.Width}})
-//for x := 0; x < mat.Height; x++ {
-//for y := 0; y < mat.Width; y++ {
-//if mat.Image[x][y] {
-//img.SetGray(x, y, color.Gray{Y: 255})
-//} else {
-//img.SetGray(x, y, color.Gray{Y: 0})
-//}
-//}
-//}
-
-//return img
-//}
