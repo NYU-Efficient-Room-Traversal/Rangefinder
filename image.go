@@ -192,7 +192,7 @@ func newCoord(x, y int) *coord {
 // the MonoImageMatrix's MonoImageInfo struct in the
 // foundBlobCentroids field
 func (image *MonoImageMatrix) FindBlobs() [][]*coord {
-	const MIN_BLOB_SIZE = 1
+	const MIN_BLOB_SIZE = 50
 	var blobs [][]*coord
 	img := image.Image
 
@@ -215,10 +215,11 @@ func (image *MonoImageMatrix) FindBlobs() [][]*coord {
 				continue
 			}
 
-			visited = findBlobHelper(image, newCoord(i, j), nil)
+			foundBlobs := findBlobHelper(image, newCoord(i, j), nil)
+			visited = append(visited, foundBlobs...)
 
-			if len(visited) >= MIN_BLOB_SIZE {
-				blobs = append(blobs, visited)
+			if len(foundBlobs) >= MIN_BLOB_SIZE {
+				blobs = append(blobs, foundBlobs)
 			}
 		}
 	}
