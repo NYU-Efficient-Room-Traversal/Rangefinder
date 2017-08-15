@@ -304,6 +304,34 @@ func getCentroid(coords []*coord) *coord {
 	return newCoord(avgX, avgY)
 }
 
+// Given a series of connected coords, take the difference of
+// min and max values for X and Y. The differences for X and Y
+// are made a ratio as:
+//		[ abs(minX) - abs(maxX) ] / [ abs(minY) - abs(maxY) ]
+// or
+//		[ abs(minY) - abs(maxY) ] / [ abs(minX) - abs(maxX) ]
+// A ratio of 1.0 denotes a perfectly square bounding rectangle,
+// (a circle blob). Anything less, denotes the oval ratio
+func getCircleRatio(blob []*coord) float64 {
+	maxX, maxY, minX, minY := 0.0, 0.0, math.MaxFloat64, math.MaxFloat64
+	for _, px := range blob {
+		x := float64(px.x)
+		y := float64(px.y)
+		maxX, maxY = math.Max(maxX, x), math.Max(maxY, y)
+		minX, minY = math.Min(minX, x), math.Min(minY, y)
+	}
+
+	diffX, diffY := math.Abs(maxX-minX), math.Abs(maxY-minY)
+	return math.Min(diffX, diffY) / math.Max(diffX, diffY)
+}
+
+// Calls getCircleRatio
+// A ratio threshold is provided to determine the minimum value
+// for which a ratio is considered a circle.
+func blobIsCircle(blob []*coord, ratioThreshold float64) bool {
+	return getCircleRatio(blob) >= ratioThreshold
+}
+
 //
 // Exported Functions
 //

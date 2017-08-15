@@ -9,9 +9,7 @@ import (
 
 func TestFindBlobs(t *testing.T) {
 
-	fmt.Println("Creating new empty mono image matrix")
-	//mat := NewEmptyMonoImageMatrix(10, 10)
-
+	// Get test image
 	fImg1, err := os.Open("test1.png")
 	if err != nil {
 		fmt.Println("err")
@@ -23,6 +21,7 @@ func TestFindBlobs(t *testing.T) {
 		fmt.Println("err")
 	}
 
+	// Read test image into MonoImageMatrix
 	mat := NewEmptyMonoImageMatrix(img.Bounds().Max.X, img.Bounds().Max.Y)
 	for x := 0; x < img.Bounds().Max.X; x++ {
 		for y := 0; y < img.Bounds().Max.Y; y++ {
@@ -35,31 +34,24 @@ func TestFindBlobs(t *testing.T) {
 		}
 	}
 
-	//fmt.Println(mat.Image)
-
-	//// Propulate with test data
-	//marksX := []int{0, 0, 1, 1, 2, 9, 9, 8, 8, 5, 4}
-	//marksY := []int{0, 1, 0, 1, 1, 9, 8, 9, 8, 5, 5}
-
-	//for i, _ := range marksX {
-	//x := marksX[i]
-	//y := marksY[i]
-	//mat.Image[x][y] = true
-	//}
-
 	fmt.Println("Finding Blobs...")
 	blobs := mat.FindBlobs()
 
-	//fmt.Println("BLOBS:")
-	//printArray(blobs)
-
 	var centroids []*coord
+	var types []string
 	for _, arr := range blobs {
 		centroids = append(centroids, getCentroid(arr))
+		shape := "Oval"
+		if blobIsCircle(arr, 0.60) {
+			shape = "Circle"
+		}
+		types = append(types, shape)
 	}
 
 	fmt.Println("CENTROIDS")
 	printArraySingle(centroids)
+	fmt.Println("SHAPES")
+	fmt.Println(types)
 }
 
 func printArraySingle(arr []*coord) {
